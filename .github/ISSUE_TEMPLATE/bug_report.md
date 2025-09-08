@@ -3,7 +3,7 @@ name: Bug report
 about: Create a report to help us improve
 title: ''
 labels: bug
-assignees: Valentin-Kaiser
+assignees: kannan83
 
 ---
 
@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    "github.com/Valentin-Kaiser/go-dbase"
+    "github.com/kannan83/go-dbase"
 )
 
 func main() {

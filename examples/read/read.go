@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Valentin-Kaiser/go-dbase/dbase"
+	"github.com/kannan83/go-dbase/dbase"
 )
 
 type Product struct {
