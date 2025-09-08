@@ -143,7 +143,7 @@ const (
 	MinIntegerValue          = math.MinInt32
 	MaxFieldsPerRecord       = 255
 	MaxCharactersPerRecord   = 65500
-	MaxTableFileSize         = 2 << 30
+	MaxTableFileSize         = (2 << 30) - 1 // 2 GB -1 byte (-1 byte to keep compatibility with 32 bit systems)
 	MaxRecordsPerTable       = 1000000000
 	MaxIndexKeyLength        = 100
 	MaxCompactIndexKeyLength = 240
