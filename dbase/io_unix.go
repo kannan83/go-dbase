@@ -242,6 +242,7 @@ func (u UnixIO) ReadColumns(file *File) ([]*Column, *Column, error) {
 	columns := make([]*Column, 0)
 	offset := int64(32)
 	b := make([]byte, 1)
+	colPos := 0 // PATCH: column postion in a row. should be calculated manually as not given by the dbf file [kannan - 10/10/2024]
 	for {
 		// Check if we are at 0x0D by reading one byte ahead
 		if _, err := handle.Seek(offset, 0); err != nil {
@@ -267,6 +268,10 @@ func (u UnixIO) ReadColumns(file *File) ([]*Column, *Column, error) {
 		if err != nil {
 			return nil, nil, NewError("failed to read column info").Details(err)
 		}
+		// PATCH [kannan - 10/10/2024]
+		column.Position = uint32(colPos)
+		colPos += 1
+		// end PATCH [kannan - 10/10/2024]
 		if column.Name() == "_NullFlags" {
 			debugf("Found null flag column: %s", column.Name())
 			nullFlag = column
@@ -274,6 +279,7 @@ func (u UnixIO) ReadColumns(file *File) ([]*Column, *Column, error) {
 			continue
 		}
 		debugf("Found column %v of type %v at offset: %d", column.Name(), column.Type(), offset)
+		//debugf("column: %+#v", (*column)) // PATCH [kannan - 10/10/2024]
 		columns = append(columns, column)
 		offset += 32
 	}
@@ -622,37 +628,59 @@ func (u UnixIO) Search(file *File, field *Field, exactMatch bool) ([]*Row, error
 	}
 	// Search for the value
 	rows := make([]*Row, 0)
-	position := uint64(file.header.FirstRow)
+	// [patch to fix search not working. kannan - 10/10/2024]
+	//position := uint64(file.header.FirstRow)
+	// we need to add +1 here as every *row* starts with a flag(1 byte) that says if the row is deleted or not.
+	// so during the lookup we should ignore this byte.
+	position := uint64(file.header.FirstRow) + 1
+	decalage := 0
+	for idx, cc := range file.table.columns {
+		if idx < int(field.column.Position) {
+			decalage += int(cc.Length)
+		}
+	}
+	// end patch [kannan - 10/10/2024]
 	for i := uint32(0); i < file.header.RowsCount; i++ {
 		// Read the field value
-		p := int64(position) + int64(field.column.Position)
+		// [patch to fix search not working. kannan - 10/10/2024]
+		//p := int64(position) + int64(field.column.Position)
+		p := int64(position) + int64(decalage)
+		// end patch [kannan - 10/10/2024]
 		debugf("Searching at position: %d", p)
 		_, err := handle.Seek(p, 0)
 		position += uint64(file.header.RowLength)
 		if err != nil {
+			//debugf("err: %v", err) // patch [kannan - 10/10/2024]
 			continue
 		}
 		buf := make([]byte, field.column.Length)
 		read, err := handle.Read(buf)
 		if err != nil {
+			//debugf("err: %v", err) // patch [kannan - 10/10/2024]
 			continue
 		}
 		if read != int(field.column.Length) {
+			//debugf("err: read != field.column.length") // patch [kannan - 10/10/2024]
 			continue
 		}
+		//debugf("check if %v(%v) contains %v(%v)", string(buf), buf, string(val), val) // patch [kannan - 10/10/2024]
 		// Check if the value matches
 		if bytes.Contains(buf, val) {
-			debugf("Found matching row %v at position: %d", i, p-int64(field.column.Position))
+			//debugf("Found matching row %v at position: %d", i, p-int64(field.column.Position))
+			debugf("Found matching field at position: %d - Record %v position: %v ", p, i, field.column.Position)
 			err := file.GoTo(i)
 			if err != nil {
 				continue
 			}
 			row, err := file.Row()
 			if err != nil {
+				debugf("err: %v", err) // patch [kannan - 10/10/2024]
 				continue
 			}
 			rows = append(rows, row)
-		}
+		} /*else { // patch [kannan - 10/10/2024]
+		        debugf("%v DOES NOT contain %v", string(buf), string(val))
+		}*/
 	}
 	return rows, nil
 }
