@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/valentin-kaiser/go-dbase/dbase"
+	"github.com/kannan83/go-dbase/dbase"
 )
 
 func main() {
