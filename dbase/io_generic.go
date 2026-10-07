@@ -89,7 +89,7 @@ func (g GenericIO) Close(file *File) error {
 			return NewErrorf("handle is of wrong type %T expected io.Closer", file.handle)
 		}
 
-		debugf("Closing file: %s", file.config.Filename)
+		debugf("Closing DBF handle: %T %s", file.handle, file.config.Filename)
 		err := handle.Close()
 		if err != nil {
 			return NewErrorf("closing DBF failed").Details(err)
@@ -101,7 +101,7 @@ func (g GenericIO) Close(file *File) error {
 			return NewErrorf("handle is of wrong type %T expected io.Closer", file.relatedHandle)
 		}
 
-		debugf("Closing related file: %s", file.config.Filename)
+		debugf("Closing FPT handle: %T %s", file.relatedHandle, file.config.Filename)
 		err := relatedHandle.Close()
 		if err != nil {
 			return NewErrorf("closing FPT failed").Details(err)
@@ -329,7 +329,7 @@ func (g GenericIO) WriteMemoHeader(file *File, size int) error {
 	return nil
 }
 
-func (g GenericIO) ReadMemo(file *File, address []byte) ([]byte, bool, error) {
+func (g GenericIO) ReadMemo(file *File, address []byte, column *Column) ([]byte, bool, error) {
 	relatedHandle, err := g.getRelatedHandle(file)
 	if err != nil {
 		return nil, false, WrapError(err)
@@ -370,7 +370,7 @@ func (g GenericIO) ReadMemo(file *File, address []byte) ([]byte, bool, error) {
 	if read != int(leng) {
 		return buf, sign == 1, NewErrorf("read %d bytes, expected %d", read, leng)
 	}
-	if sign == 1 {
+	if sign == 1 || !column.Flag.Has(byte(BinaryFlag)) {
 		buf, err = file.config.Converter.Decode(buf)
 		if err != nil {
 			return buf, sign == 1, NewErrorf("failed to decode memo data").Details(err)
@@ -462,7 +462,7 @@ func (g GenericIO) ReadNullFlag(file *File, position uint64, column *Column) (bo
 	if n != int(file.nullFlagColumn.Length) {
 		return false, false, NewErrorf("read %d bytes, expected %d", n, file.nullFlagColumn.Length)
 	}
-	if column.Flag == byte(NullableFlag) || column.Flag == byte(NullableFlag|BinaryFlag) {
+	if column.Flag.Has(byte(NullableFlag)) {
 		debugf("Read _NullFlag for column %s => varlength: %v - null: %v", column.Name(), getNthBit(buf, nullFlagPosition), getNthBit(buf, nullFlagPosition+1))
 		return getNthBit(buf, nullFlagPosition), getNthBit(buf, nullFlagPosition+1), nil
 	}

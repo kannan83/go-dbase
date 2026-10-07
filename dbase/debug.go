@@ -1,9 +1,11 @@
 package dbase
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"runtime"
 )
 
 var (
@@ -12,8 +14,9 @@ var (
 	errorLogger = log.New(os.Stdout, "[dbase] [ERROR] ", log.LstdFlags)
 )
 
-// Debug the dbase package
-// If debug is true, debug messages will be printed to the defined io.Writter (default: os.Stdout)
+// Debug enables or disables debug logging for the dbase package.
+// If debug is true, debug messages will be printed to the specified io.Writer (default: os.Stdout).
+// If out is nil, the output destination is not changed.
 func Debug(enabled bool, out io.Writer) {
 	if out != nil {
 		debugLogger.SetOutput(out)
@@ -24,6 +27,18 @@ func Debug(enabled bool, out io.Writer) {
 
 func debugf(format string, v ...interface{}) {
 	if debug {
-		debugLogger.Printf(format, v...)
+		debugLogger.Print(trace() + " - " + fmt.Sprintf(format, v...))
 	}
+}
+
+func trace() string {
+	pc, file, line, ok := runtime.Caller(2)
+	if !ok {
+		return ""
+	}
+
+	if f := runtime.FuncForPC(pc); f != nil {
+		return fmt.Sprintf("%v:%v", f.Name(), line)
+	}
+	return fmt.Sprintf("%v:%v", file, line)
 }

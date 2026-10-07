@@ -1,10 +1,8 @@
 module github.com/kannan83/go-dbase
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.26.0
 
 require (
-	golang.org/x/sys v0.34.0
-	golang.org/x/text v0.27.0
+	golang.org/x/sys v0.48.0
+	golang.org/x/text v0.42.0
 )
