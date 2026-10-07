@@ -49,8 +49,7 @@ func OpenTable(config *Config) (*File, error) {
 
 	// If custom IO is already provided, use it directly
 	if config.IO != nil {
-		ioImpl := wrapIOWithIndexes(config.IO, config)
-		return ioImpl.OpenTable(config)
+		return config.IO.OpenTable(config)
 	}
 
 	// No custom IO provided, so create one based on available data sources
@@ -72,11 +71,10 @@ func OpenTable(config *Config) (*File, error) {
 
 		// Create a copy of config with GenericIO
 		configCopy := *config
-		genericIO := GenericIO{
+		configCopy.IO = GenericIO{
 			Handle:        dbfHandle,
 			RelatedHandle: memoHandle,
 		}
-		configCopy.IO = wrapIOWithIndexes(genericIO, &configCopy)
 
 		return configCopy.IO.OpenTable(&configCopy)
 	}
@@ -86,7 +84,7 @@ func OpenTable(config *Config) (*File, error) {
 		return nil, NewError("missing filename, data, or reader in configuration")
 	}
 
-	config.IO = wrapIOWithIndexes(DefaultIO, config)
+	config.IO = DefaultIO
 	return config.IO.OpenTable(config)
 }
 
