@@ -31,7 +31,7 @@ func (file *File) indexedSearchExact(field *Field) ([]*Row, bool, error) {
 		return nil, false, nil
 	}
 
-	debugf("Using NTX index %s for exact search on field %s", indexPath, field.Name())
+	debugf("Using NTX index (file %s) for exact search. search pattern %v=%v", indexPath, field.Name(), field.GetValue())
 
 	ix, err := openReadOnlyNTX(indexPath)
 	if err != nil {

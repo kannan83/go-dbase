@@ -617,9 +617,9 @@ func (u UnixIO) Search(file *File, field *Field, exactMatch bool) ([]*Row, error
 	if exactMatch && field != nil {
 		rows, used, err := file.indexedSearchExact(field)
 		if err != nil {
-			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)
+			debugf("NTX search failed for %v=%v. err: %v. falling back to DBF full scan", field.Name(), field.GetValue(), err)
 		} else if used {
-			debugf("NTX search used for field %s, matched %d row(s)", field.Name(), len(rows))
+			debugf("NTX search succeeded for %v=%v. matched %d row(s)", field.Name(), field.GetValue(), len(rows))
 			return rows, nil
 		}
 	}
