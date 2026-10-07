@@ -147,7 +147,6 @@ func (w WindowsIO) Close(file *File) error {
 		if err != nil {
 			return WrapError(err)
 		}
-
 		debugf("Closing related file: %s", file.config.Filename)
 		err = windows.Close(*relatedHandle)
 		if err != nil {
@@ -168,13 +167,13 @@ func (w WindowsIO) Create(file *File) error {
 		return NewErrorf("converting filename to UTF16 failed").Details(err)
 	}
 	// Check if file exists already
-	_, err = windows.GetFileAttributes(&dbfname[0])
+	_, err = windows.GetFileAttributes(&dbname[0])
 	if err == nil {
 		return NewError("file already exists")
 	}
 	// Create the file
 	debugf("Creating file: %s", file.config.Filename)
-	fd, err := windows.CreateFile(&dbfname[0], windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.CREATE_ALWAYS, windows.FILE_ATTRIBUTE_NORMAL, 0)
+	fd, err := windows.CreateFile(&dbname[0], windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.CREATE_ALWAYS, windows.FILE_ATTRIBUTE_NORMAL, 0)
 	if err != nil {
 		return NewErrorf("creating DBF file failed").Details(err)
 	}
@@ -708,6 +707,16 @@ func (w WindowsIO) WriteRow(file *File, row *Row) (err error) {
 }
 
 func (w WindowsIO) Search(file *File, field *Field, exactMatch bool) ([]*Row, error) {
+	if exactMatch && field != nil {
+		rows, used, err := file.indexedSearchExact(field)
+		if err != nil {
+			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)
+		} else if used {
+			debugf("NTX search used for field %s, matched %d row(s)", field.Name(), len(rows))
+			return rows, nil
+		}
+	}
+
 	if field.column.DataType == 'M' {
 		return nil, NewErrorf("searching memo fields is not supported")
 	}
