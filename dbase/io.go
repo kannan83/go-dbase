@@ -162,6 +162,7 @@ func (file *File) ReadNullFlag(position uint64, column *Column) (bool, bool, err
 }
 
 // Search searches for rows that contain the specified value in the given field.
+// If exactMatch is true, only exact matches are returned; otherwise, partial matches are included.
 // The actual search strategy is delegated to the configured IO implementation.
 func (file *File) Search(field *Field, exactMatch bool) ([]*Row, error) {
 	return file.defaults().io.Search(file, field, exactMatch)
