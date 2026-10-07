@@ -49,7 +49,8 @@ func OpenTable(config *Config) (*File, error) {
 
 	// If custom IO is already provided, use it directly
 	if config.IO != nil {
-		return config.IO.OpenTable(config)
+		ioImpl := wrapIOWithIndexes(config.IO, config)
+		return ioImpl.OpenTable(config)
 	}
 
 	// No custom IO provided, so create one based on available data sources
@@ -71,10 +72,11 @@ func OpenTable(config *Config) (*File, error) {
 
 		// Create a copy of config with GenericIO
 		configCopy := *config
-		configCopy.IO = GenericIO{
+		genericIO := GenericIO{
 			Handle:        dbfHandle,
 			RelatedHandle: memoHandle,
 		}
+		configCopy.IO = wrapIOWithIndexes(genericIO, &configCopy)
 
 		return configCopy.IO.OpenTable(&configCopy)
 	}
@@ -84,7 +86,7 @@ func OpenTable(config *Config) (*File, error) {
 		return nil, NewError("missing filename, data, or reader in configuration")
 	}
 
-	config.IO = DefaultIO
+	config.IO = wrapIOWithIndexes(DefaultIO, config)
 	return config.IO.OpenTable(config)
 }
 
@@ -162,19 +164,8 @@ func (file *File) ReadNullFlag(position uint64, column *Column) (bool, bool, err
 }
 
 // Search searches for rows that contain the specified value in the given field.
-// If exactMatch is true and an NTX index is configured for the field, Search
-// first performs a read-only indexed lookup. Any unavailable, stale or invalid
-// index transparently falls back to the existing sequential DBF scan.
+// The actual search strategy is delegated to the configured IO implementation.
 func (file *File) Search(field *Field, exactMatch bool) ([]*Row, error) {
-	if exactMatch && field != nil {
-		rows, used, err := file.indexedSearchExact(field)
-		if err != nil {
-			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)
-		} else if used {
-			debugf("NTX search used for field %s, matched %d row(s)", field.Name(), len(rows))
-			return rows, nil
-		}
-	}
 	return file.defaults().io.Search(file, field, exactMatch)
 }
 
