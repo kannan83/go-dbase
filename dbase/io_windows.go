@@ -147,6 +147,7 @@ func (w WindowsIO) Close(file *File) error {
 		if err != nil {
 			return WrapError(err)
 		}
+
 		debugf("Closing related file: %s", file.config.Filename)
 		err = windows.Close(*relatedHandle)
 		if err != nil {
@@ -167,13 +168,13 @@ func (w WindowsIO) Create(file *File) error {
 		return NewErrorf("converting filename to UTF16 failed").Details(err)
 	}
 	// Check if file exists already
-	_, err = windows.GetFileAttributes(&dbname[0])
+	_, err = windows.GetFileAttributes(&dbfname[0])
 	if err == nil {
 		return NewError("file already exists")
 	}
 	// Create the file
 	debugf("Creating file: %s", file.config.Filename)
-	fd, err := windows.CreateFile(&dbname[0], windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.CREATE_ALWAYS, windows.FILE_ATTRIBUTE_NORMAL, 0)
+	fd, err := windows.CreateFile(&dbfname[0], windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.CREATE_ALWAYS, windows.FILE_ATTRIBUTE_NORMAL, 0)
 	if err != nil {
 		return NewErrorf("creating DBF file failed").Details(err)
 	}
