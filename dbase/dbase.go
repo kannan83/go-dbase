@@ -63,11 +63,17 @@ type Config struct {
 	TrimSpaces                        bool              // If true, spaces are trimmed from the start and end of string values.
 	CollapseSpaces                    bool              // If true, any length of spaces is replaced by a single space.
 	DisableConvertFilenameUnderscores bool              // If false underscores in the table filename are converted to spaces.
-	ReadOnly                          bool              // If true the file is opened in read-only mode.
+	ReadOnly                          bool              // If true the DBF file is opened in read-only mode.
 	WriteLock                         bool              // Whether or not the write operations should lock the record
 	ValidateCodePage                  bool              // Whether or not the code page mark should be validated.
 	InterpretCodePage                 bool              // Whether or not the code page mark should be interpreted. Ignores the defined converter.
 	IO                                IO                // The IO interface to use.
+
+	// Indexes maps a DBF column name to an NTX file path. NTX indexes are used
+	// only for exact searches and are always opened read-only. If an index is
+	// unavailable or inconsistent, Search transparently falls back to scanning
+	// the DBF file.
+	Indexes map[string]string
 
 	// Alternative data sources (instead of filesystem files)
 	Data       []byte             // DBF file data as bytes (alternative to Filename)
@@ -86,7 +92,7 @@ type Config struct {
 func (c *Config) validateDataSources() error {
 	sources := 0
 	var sourcesSet []string
-	
+
 	if c.Filename != "" {
 		sources++
 		sourcesSet = append(sourcesSet, "Filename")
@@ -103,14 +109,14 @@ func (c *Config) validateDataSources() error {
 		sources++
 		sourcesSet = append(sourcesSet, "IO")
 	}
-	
+
 	if sources == 0 {
 		return NewError("no data source provided: must set exactly one of Filename, Data, Reader, or IO")
 	}
 	if sources > 1 {
 		return NewErrorf("multiple data sources provided (%v): must set exactly one of Filename, Data, Reader, or IO", sourcesSet)
 	}
-	
+
 	return nil
 }
 

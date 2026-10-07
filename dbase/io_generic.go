@@ -542,6 +542,16 @@ func (g GenericIO) WriteRow(file *File, row *Row) error {
 }
 
 func (g GenericIO) Search(file *File, field *Field, exactMatch bool) ([]*Row, error) {
+	if exactMatch && field != nil {
+		rows, used, err := file.indexedSearchExact(field)
+		if err != nil {
+			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)
+		} else if used {
+			debugf("NTX search used for field %s, matched %d row(s)", field.Name(), len(rows))
+			return rows, nil
+		}
+	}
+
 	if field.column.DataType == 'M' {
 		return nil, NewError("searching memo fields is not supported")
 	}
