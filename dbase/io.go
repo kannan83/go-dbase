@@ -162,8 +162,19 @@ func (file *File) ReadNullFlag(position uint64, column *Column) (bool, bool, err
 }
 
 // Search searches for rows that contain the specified value in the given field.
-// If exactMatch is true, only exact matches are returned; otherwise, partial matches are included.
+// If exactMatch is true and an NTX index is configured for the field, Search
+// first performs a read-only indexed lookup. Any unavailable, stale or invalid
+// index transparently falls back to the existing sequential DBF scan.
 func (file *File) Search(field *Field, exactMatch bool) ([]*Row, error) {
+	if exactMatch {
+		rows, used, err := file.indexedSearchExact(field)
+		if err != nil {
+			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)
+		} else if used {
+			debugf("NTX search used for field %s, matched %d row(s)", field.Name(), len(rows))
+			return rows, nil
+		}
+	}
 	return file.defaults().io.Search(file, field, exactMatch)
 }
 
@@ -204,7 +215,7 @@ func (file *File) defaults() *File {
 	return file
 }
 
-// ValidateFileVersion checks if the dBase file version is supported and tested.
+// ValidateFileVersion checks if a dBase file version is supported and tested.
 // If untested is true, validation is bypassed and any version is accepted.
 func ValidateFileVersion(version byte, untested bool) error {
 	if untested {
