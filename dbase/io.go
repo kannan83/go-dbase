@@ -166,7 +166,7 @@ func (file *File) ReadNullFlag(position uint64, column *Column) (bool, bool, err
 // first performs a read-only indexed lookup. Any unavailable, stale or invalid
 // index transparently falls back to the existing sequential DBF scan.
 func (file *File) Search(field *Field, exactMatch bool) ([]*Row, error) {
-	if exactMatch {
+	if exactMatch && field != nil {
 		rows, used, err := file.indexedSearchExact(field)
 		if err != nil {
 			debugf("NTX search for field %s unavailable, falling back to DBF scan: %v", field.Name(), err)

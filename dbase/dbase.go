@@ -76,7 +76,7 @@ type Config struct {
 	Indexes map[string]string
 
 	// Alternative data sources (instead of filesystem files)
-	Data       []byte             // DBF file data as bytes (alternative to Filename and Data)
+	Data       []byte             // DBF file data as bytes (alternative to Filename)
 	MemoData   []byte             // FPT memo file data as bytes (optional)
 	Reader     io.ReadWriteSeeker // DBF file reader (alternative to Filename and Data)
 	MemoReader io.ReadWriteSeeker // FPT memo file reader (optional)
